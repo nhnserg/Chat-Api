@@ -2,34 +2,29 @@ import { Message } from '../models/Message.js';
 
 export class MessageService {
   async getRoomMessages(roomId) {
-    return await Message.find({ roomId })
-      .sort({ timestamp: -1 })
-      .limit(50);
+    return await Message.find({ roomId }).sort({ timestamp: -1 }).limit(50);
   }
 
-  async getPrivateMessages(username) {
+  async getPrivateMessages(name) {
     return await Message.find({
       isPrivate: true,
-      $or: [
-        { sender: username },
-        { recipient: username }
-      ]
+      $or: [{ sender: name }, { recipient: name }],
     }).sort({ timestamp: -1 });
   }
 
-  async getUnreadCount(username) {
+  async getUnreadCount(name) {
     return await Message.countDocuments({
       isPrivate: true,
-      recipient: username,
-      read: false
+      recipient: name,
+      read: false,
     });
   }
 
-  async markMessageAsRead(messageId, username) {
+  async markMessageAsRead(messageId, name) {
     const message = await Message.findOneAndUpdate(
       {
         _id: messageId,
-        recipient: username
+        recipient: name,
       },
       { read: true },
       { new: true }

@@ -1,123 +1,105 @@
-import jwt from 'jsonwebtoken'
-import { User } from '../models/User.js'
-import { HttpError } from '../helpers/HttpError.js'
-import dotenv from 'dotenv'
-import { Token } from '../token/token.model.js'
+import jwt from 'jsonwebtoken';
+import { User } from '../user/user.model.js';
+import { HttpError } from '../helpers/HttpError.js';
+import { Token } from '../token/token.model.js';
+import dotenvConfig from '../dotenvConfig.js';
 
-dotenv.config()
+const { KEY_ACCESS, KEY_REFRESH } = dotenvConfig;
 
 export class AuthService {
-	async registerUser({ username, email, password }) {
-		const existingUser = await User.findOne({
-			$or: [{ email }, { username }],
-		})
+  async registerUser({ name, email, password }) {
+    const existingUser = await User.findOne({ email });
 
-		if (existingUser) {
-			throw HttpError(409, 'User with this email or username already exists')
-		}
+    if (existingUser) {
+      throw HttpError(409, 'Email is already in use');
+    }
 
-		const user = new User({ username, email, password })
-		await user.save()
+    const newUser = await User.create({ name, email, password });
 
-		const tokens = this.generateToken(user._id)
-		await this.saveRefreshToken(user._id, tokens.refreshToken)
+    const tokens = this.generateTokens(newUser._id);
+    await this.saveRefreshToken(newUser._id, tokens.refreshToken);
 
-		return {
-			user: {
-				id: user._id,
-				username: user.username,
-				email: user.email,
-			},
-			...tokens,
-		}
-	}
+    return {
+      ...newUser.toObject(),
+      password: undefined,
+      ...tokens,
+    };
+  }
 
-	async loginUser({ email, password }) {
-		const user = await User.findOne({ email })
-		if (!user || !(await user.comparePassword(password))) {
-			throw HttpError(401, 'Invalid credentials')
-		}
+  async loginUser({ email, password }) {
+    const user = await User.findOne({ email });
 
-		user.lastActive = new Date()
-		await user.save()
+    if (!user || !(await user.comparePassword(password))) {
+      throw HttpError(401, 'Email or password invalid');
+    }
 
-		const tokens = this.generateToken(user._id)
-		await this.saveRefreshToken(user._id, tokens.refreshToken)
+    const tokens = this.generateTokens(user._id);
+    await this.saveRefreshToken(user._id, tokens.refreshToken);
 
-		return {
-			user: {
-				id: user._id,
-				username: user.username,
-				email: user.email,
-			},
-			...tokens,
-		}
-	}
+    return {
+      ...user.toObject(),
+      password: undefined,
+      ...tokens,
+    };
+  }
 
-	async refresh(refreshToken) {
-		if (!refreshToken) {
-			throw HttpError(401, 'Refresh token is missing')
-		}
+  async refresh(refreshToken) {
+    if (!refreshToken) {
+      throw HttpError(401, 'Refresh token is missing');
+    }
 
-		const tokenData = await Token.findOne({ refreshToken })
-		if (!tokenData) {
-			throw HttpError(403, 'Invalid refresh token')
-		}
+    const tokenData = await Token.findOne({ refreshToken });
 
-		let userData
-		try {
-			userData = jwt.verify(refreshToken, process.env.KEY_ACCESS)
-		} catch (error) {
-			throw HttpError(403, 'Invalid refresh token')
-		}
+    if (!tokenData) {
+      throw HttpError(403, 'Invalid refresh token');
+    }
 
-		const user = await User.findById(userData.userId)
-		if (!user) {
-			throw HttpError(404, 'User not found')
-		}
-		const tokens = this.generateToken(user._id)
-		await this.saveRefreshToken(user._id, tokens.refreshToken)
+    let userData;
+    try {
+      userData = jwt.verify(refreshToken, KEY_REFRESH);
+    } catch (error) {
+      throw HttpError(403, 'Invalid refresh token');
+    }
 
-		return {
-			user: {
-				id: user._id,
-				username: user.username,
-				email: user.email,
-			},
-			...tokens,
-		}
-	}
-	async logout(refreshToken) {
-		await Token.findOneAndDelete({ refreshToken })
-	}
+    const user = await User.findById(userData.userId);
 
-	async getUserProfile(user) {
-		return {
-			id: user._id,
-			username: user.username,
-			email: user.email,
-			createdAt: user.createdAt,
-			lastActive: user.lastActive,
-		}
-	}
+    if (!user) {
+      throw HttpError(404, 'User not found');
+    }
 
-	generateTokens(userId) {
-		const accessToken = jwt.sign({ userId }, process.env.KEY_ACCESS, {
-			expiresIn: '15m',
-		})
-		const refreshToken = jwt.sign({ userId }, process.env.KEY_REFRESH, {
-			expiresIn: '7d',
-		})
+    const tokens = this.generateTokens(user._id);
+    await this.saveRefreshToken(user._id, tokens.refreshToken);
 
-		return { accessToken, refreshToken }
-	}
+    return {
+      ...user.toObject(),
+      password: undefined,
+      ...tokens,
+    };
+  }
 
-	// Сохранение refresh-токена в базе
-	async saveRefreshToken(userId, refreshToken) {
-		await Token.findOneAndUpdate(
-			{ userId },
-			{ refreshToken },
-			{ upsert: true, new: true }
-		)
-	}
+  async logoutUser(refreshToken) {
+    await Token.findOneAndDelete({ refreshToken });
+  }
+
+  generateTokens(userId) {
+    if (!KEY_ACCESS || !KEY_REFRESH) {
+      throw new Error('JWT secret keys are not set in environment variables');
+    }
+    const accessToken = jwt.sign({ userId }, KEY_ACCESS, {
+      expiresIn: '3d',
+    });
+    const refreshToken = jwt.sign({ userId }, KEY_REFRESH, {
+      expiresIn: '7d',
+    });
+
+    return { accessToken, refreshToken };
+  }
+
+  async saveRefreshToken(userId, refreshToken) {
+    await Token.findOneAndUpdate(
+      { user: userId },
+      { refreshToken },
+      { upsert: true, new: true }
+    );
+  }
 }

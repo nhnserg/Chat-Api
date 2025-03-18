@@ -1,6 +1,11 @@
 import { WebSocketServer } from 'ws';
 import { WebSocketService } from '../websocket/webSocket.service.js';
-import { authenticate } from '../middleware/authenticate.js';
+import jwt from 'jsonwebtoken';
+import { User } from '../user/user.model.js';
+import { HttpError } from '../helpers/HttpError.js';
+import dotenvConfig from '../dotenvConfig.js';
+
+const { KEY_ACCESS } = dotenvConfig;
 
 export class WebSocketManager {
   constructor(server) {
@@ -10,36 +15,43 @@ export class WebSocketManager {
   }
 
   setupWebSocket() {
-    this.wss.on('connection', async ws => {
+    this.wss.on('connection', (ws, req) => {
       console.log('✅ Новый клиент подключился');
+
+      // Извлекаем токен из заголовка
+      const token = req.headers['authorization']?.split(' ')[1];
+      if (!token) {
+        ws.close(1008, 'Unauthorized: No token provided');
+        return;
+      }
+
+      let user;
+      try {
+        user = jwt.verify(token, KEY_ACCESS);
+      } catch (error) {
+        ws.close(1008, 'Unauthorized: Invalid token');
+        return;
+      }
+
+      // Привязываем пользователя к сокету
+      ws.user = user;
 
       ws.on('message', async data => {
         try {
           const message = JSON.parse(data);
-          const user = await authenticate(message.token); // 🔥 Добавляем аутентификацию
-
-          if (!user) {
-            ws.send(
-              JSON.stringify({
-                type: 'error',
-                error: 'Authentication required',
-              })
-            );
-            return;
-          }
 
           switch (message.type) {
             case 'join':
-              this.handleJoin(ws, message, user);
+              this.handleJoin(ws, message);
               break;
             case 'message':
-              await this.handleMessage(ws, message, user);
+              await this.handleMessage(ws, message);
               break;
             case 'privateMessage':
-              await this.handlePrivateMessage(ws, message, user);
+              await this.handlePrivateMessage(ws, message);
               break;
             case 'typing':
-              this.handleTyping(ws, message, user);
+              this.handleTyping(ws, message);
               break;
             default:
               console.warn('⚠ Неизвестный тип сообщения:', message.type);
@@ -56,13 +68,11 @@ export class WebSocketManager {
         const client = this.wsService.getClientInfo(ws);
         if (!client) return;
 
-        console.log(
-          `❌ Клиент ${client.username} покинул чат ${client.roomId}`
-        );
+        console.log(`❌ Клиент ${client.name} покинул чат ${client.roomId}`);
 
         this.broadcast(client.roomId, {
           type: 'userLeft',
-          username: client.username,
+          name: client.name,
           timestamp: new Date(),
         });
 
@@ -78,22 +88,22 @@ export class WebSocketManager {
       return;
     }
 
-    this.wsService.addClient(ws, message.username, roomId);
-    console.log(`👤 ${message.username} присоединился к ${roomId}`);
+    this.wsService.addClient(ws, message.name, roomId);
+    console.log(`👤 ${message.name} присоединился к ${roomId}`);
 
     this.broadcast(
       message.roomId,
       {
         type: 'userJoined',
-        username: message.username,
+        name: message.name,
         timestamp: new Date(),
       },
       ws
     );
   }
 
-  async handleMessage(ws, message, user) {
-    const newMessage = await this.wsService.handleMessage(user, message); // 🔥 Передаём user
+  async handleMessage(ws, message) {
+    const newMessage = await this.wsService.handleMessage(message); // Убрали user
 
     if (!newMessage) {
       console.error('❌ Ошибка: сообщение не сохранено', message);
@@ -105,7 +115,7 @@ export class WebSocketManager {
       {
         type: 'message',
         messageId: newMessage._id,
-        username: user.username, // ✅ Теперь всегда есть
+        name: message.name, // Взяли из message
         content: message.content,
         timestamp: new Date(),
       },
@@ -124,7 +134,7 @@ export class WebSocketManager {
     const delivered = this.sendPrivateMessage(message.recipient, {
       type: 'privateMessage',
       messageId: privateMessage._id,
-      sender: message.username,
+      sender: message.name,
       content: message.content,
       timestamp: new Date(),
     });
@@ -144,7 +154,7 @@ export class WebSocketManager {
       message.roomId,
       {
         type: 'typing',
-        username: message.username,
+        name: message.name,
         isTyping: message.isTyping,
       },
       ws
@@ -160,9 +170,9 @@ export class WebSocketManager {
     });
   }
 
-  sendPrivateMessage(username, message) {
+  sendPrivateMessage(name, message) {
     for (const [client, data] of this.wsService.clients) {
-      if (data.username === username) {
+      if (data.name === name) {
         client.send(JSON.stringify(message));
         return true;
       }

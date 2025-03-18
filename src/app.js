@@ -18,9 +18,9 @@ app.use(cookieParser());
 
 app.use('/api-docs', swaggerUi.serve, swaggerUi.setup(swaggerDocument));
 
-app.use('/api/rooms', roomRoutes);
-app.use('/api/messages', messageRoutes);
-app.use('/api/auth', authRoutes);
+app.use('/rooms', roomRoutes);
+app.use('/messages', messageRoutes);
+app.use('/auth', authRoutes);
 
 app.use((_, res) => {
   res.status(404).json({ message: 'Route not found' });

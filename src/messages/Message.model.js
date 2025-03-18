@@ -4,46 +4,46 @@ const messageSchema = new mongoose.Schema({
   roomId: {
     type: mongoose.Schema.Types.ObjectId,
     ref: 'ChatRoom',
-    required: false // Made optional for private messages
+    required: false, // Made optional for private messages
   },
-  username: {
+  name: {
     type: String,
     required: true,
-    trim: true
+    trim: true,
   },
   content: {
     type: String,
     required: true,
-    trim: true
+    trim: true,
   },
   replyTo: {
     type: mongoose.Schema.Types.ObjectId,
-    ref: 'Message'
+    ref: 'Message',
   },
   isPrivate: {
     type: Boolean,
-    default: false
+    default: false,
   },
   sender: {
     type: String,
     required: true,
-    trim: true
+    trim: true,
   },
   recipient: {
     type: String,
-    required: function() {
+    required: function () {
       return this.isPrivate === true;
     },
-    trim: true
+    trim: true,
   },
   read: {
     type: Boolean,
-    default: false
+    default: false,
   },
   timestamp: {
     type: Date,
-    default: Date.now
-  }
+    default: Date.now,
+  },
 });
 
 export const Message = mongoose.model('Message', messageSchema);

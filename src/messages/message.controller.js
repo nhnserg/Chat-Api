@@ -15,14 +15,14 @@ export class MessageController {
 
   getPrivateMessages = trycatch(async (req, res) => {
     const messages = await this.messageService.getPrivateMessages(
-      req.user.username
+      req.user.name
     );
 
     res.json(messages);
   });
 
   getUnreadCount = trycatch(async (req, res) => {
-    const count = await this.messageService.getUnreadCount(req.user.username);
+    const count = await this.messageService.getUnreadCount(req.user.name);
 
     res.json({ unreadCount: count });
   });
@@ -30,7 +30,7 @@ export class MessageController {
   markAsRead = trycatch(async (req, res) => {
     const message = await this.messageService.markMessageAsRead(
       req.params.messageId,
-      req.user.username
+      req.user.name
     );
 
     res.json(message);

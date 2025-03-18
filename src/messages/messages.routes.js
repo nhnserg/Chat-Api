@@ -1,10 +1,10 @@
 import express from 'express';
-import { auth } from '../middleware/auth.js';
 import { Message } from './Message.model.js';
+import { authenticate } from '../middleware/authenticate.js';
 
 const messageRouter = express.Router();
 
-messageRouter.get('/room/:roomId', auth, async (req, res) => {
+messageRouter.get('/room/:roomId', authenticate, async (req, res) => {
   try {
     const messages = await Message.find({ roomId: req.params.roomId })
       .sort({ timestamp: -1 })
@@ -15,11 +15,11 @@ messageRouter.get('/room/:roomId', auth, async (req, res) => {
   }
 });
 
-messageRouter.get('/private', auth, async (req, res) => {
+messageRouter.get('/private', authenticate, async (req, res) => {
   try {
     const messages = await Message.find({
       isPrivate: true,
-      $or: [{ sender: req.user.username }, { recipient: req.user.username }],
+      $or: [{ sender: req.user.name }, { recipient: req.user.name }],
     }).sort({ timestamp: -1 });
 
     res.json(messages);
@@ -28,11 +28,11 @@ messageRouter.get('/private', auth, async (req, res) => {
   }
 });
 
-messageRouter.get('/unread', auth, async (req, res) => {
+messageRouter.get('/unread', authenticate, async (req, res) => {
   try {
     const unreadCount = await Message.countDocuments({
       isPrivate: true,
-      recipient: req.user.username,
+      recipient: req.user.name,
       read: false,
     });
 
@@ -42,12 +42,12 @@ messageRouter.get('/unread', auth, async (req, res) => {
   }
 });
 
-messageRouter.patch('/:messageId/read', auth, async (req, res) => {
+messageRouter.patch('/:messageId/read', authenticate, async (req, res) => {
   try {
     const message = await Message.findOneAndUpdate(
       {
         _id: req.params.messageId,
-        recipient: req.user.username,
+        recipient: req.user.name,
       },
       { read: true },
       { new: true }

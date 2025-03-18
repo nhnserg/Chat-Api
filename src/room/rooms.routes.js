@@ -1,10 +1,10 @@
 import express from 'express';
-import { auth } from '../middleware/auth.js';
 import { ChatRoom } from './ChatRoom.js';
+import { authenticate } from '../middleware/authenticate.js';
 
 const roomRouter = express.Router();
 
-roomRouter.get('/', auth, async (req, res) => {
+roomRouter.get('/', authenticate, async (req, res) => {
   try {
     const rooms = await ChatRoom.find();
     res.json(rooms);
@@ -13,7 +13,7 @@ roomRouter.get('/', auth, async (req, res) => {
   }
 });
 
-roomRouter.post('/', auth, async (req, res) => {
+roomRouter.post('/', authenticate, async (req, res) => {
   try {
     const room = new ChatRoom({
       name: req.body.name,
