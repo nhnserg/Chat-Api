@@ -28,8 +28,16 @@
       "description": "Authentication endpoints"
     },
     {
-      "name": "Google Auth",
-      "description": "Google OAuth authentication"
+      "name": "User",
+      "description": "User management"
+    },
+    {
+      "name": "Rooms",
+      "description": "Chat rooms management"
+    },
+    {
+      "name": "Messages",
+      "description": "Messages management"
     }
   ],
   "paths": {
@@ -57,6 +65,11 @@
                     "type": "string",
                     "minLength": 6
                   }
+                },
+                "example": {
+                  "name": "John Doe",
+                  "email": "john.doe@example.com",
+                  "password": "securepassword123"
                 }
               }
             }
@@ -74,21 +87,26 @@
                       "type": "object",
                       "properties": {
                         "id": {
-                          "type": "string"
+                          "type": "string",
+                          "description": "User's unique identifier"
                         },
                         "name": {
-                          "type": "string"
+                          "type": "string",
+                          "description": "User's name"
                         },
                         "email": {
-                          "type": "string"
+                          "type": "string",
+                          "description": "User's email address"
                         }
                       }
                     },
                     "accessToken": {
-                      "type": "string"
+                      "type": "string",
+                      "description": "JWT access token for the user"
                     },
                     "refreshToken": {
-                      "type": "string"
+                      "type": "string",
+                      "description": "JWT refresh token to obtain a new access token"
                     }
                   }
                 }
@@ -137,21 +155,26 @@
                       "type": "object",
                       "properties": {
                         "id": {
-                          "type": "string"
+                          "type": "string",
+                          "description": "User's unique identifier"
                         },
                         "name": {
-                          "type": "string"
+                          "type": "string",
+                          "description": "User's name"
                         },
                         "email": {
-                          "type": "string"
+                          "type": "string",
+                          "description": "User's email address"
                         }
                       }
                     },
                     "accessToken": {
-                      "type": "string"
+                      "type": "string",
+                      "description": "JWT access token for the user"
                     },
                     "refreshToken": {
-                      "type": "string"
+                      "type": "string",
+                      "description": "JWT refresh token to obtain a new access token"
                     }
                   }
                 }
@@ -201,32 +224,184 @@
         }
       }
     },
-    "/auth/google": {
+    "/user/current": {
       "get": {
-        "summary": "Start Google OAuth authentication",
-        "tags": ["Google Auth"],
-        "responses": {
-          "302": {
-            "description": "Redirects to Google OAuth page"
+        "summary": "Get current user data",
+        "tags": ["User"],
+        "security": [
+          {
+            "bearerAuth": []
           }
-        }
-      }
-    },
-    "/auth/google-redirect": {
-      "get": {
-        "summary": "Google OAuth redirect handler",
-        "tags": ["Google Auth"],
+        ],
         "responses": {
           "200": {
-            "description": "Redirects to frontend with tokens"
+            "description": "Current user data",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "_id": {
+                      "type": "string"
+                    },
+                    "name": {
+                      "type": "string"
+                    },
+                    "email": {
+                      "type": "string"
+                    },
+                    "tokenAccess": {
+                      "type": "string"
+                    }
+                  }
+                }
+              }
+            }
           },
-          "500": {
-            "description": "Google authentication failed"
+          "401": {
+            "description": "Unauthorized"
           }
         }
       }
     },
-    "/api/rooms": {
+    "/user/update": {
+      "put": {
+        "summary": "Update user data",
+        "tags": ["User"],
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "name": {
+                    "type": "string"
+                  },
+                  "email": {
+                    "type": "string"
+                  },
+                  "password": {
+                    "type": "string",
+                    "minLength": 6
+                  },
+                  "avatar_url": {
+                    "type": "string"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "User data updated successfully",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "user": {
+                      "type": "object",
+                      "properties": {
+                        "_id": {
+                          "type": "string"
+                        },
+                        "name": {
+                          "type": "string"
+                        },
+                        "email": {
+                          "type": "string"
+                        },
+                        "avatar_url": {
+                          "type": "string"
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Invalid input"
+          },
+          "401": {
+            "description": "Unauthorized"
+          }
+        }
+      }
+    },
+    "/user/theme": {
+      "put": {
+        "summary": "Update user theme",
+        "tags": ["User"],
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "theme": {
+                    "type": "string",
+                    "enum": ["light", "dark", "violet"]
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "User theme updated successfully",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "user": {
+                      "type": "object",
+                      "properties": {
+                        "_id": {
+                          "type": "string"
+                        },
+                        "name": {
+                          "type": "string"
+                        },
+                        "email": {
+                          "type": "string"
+                        },
+                        "theme": {
+                          "type": "string"
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Invalid input"
+          },
+          "401": {
+            "description": "Unauthorized"
+          }
+        }
+      }
+    },
+    "/rooms": {
       "get": {
         "summary": "Get all chat rooms",
         "tags": ["Rooms"],
@@ -261,10 +436,12 @@
                 "required": ["name", "topic"],
                 "properties": {
                   "name": {
-                    "type": "string"
+                    "type": "string",
+                    "description": "Name of the new room"
                   },
                   "topic": {
-                    "type": "string"
+                    "type": "string",
+                    "description": "Topic of the new room"
                   }
                 }
               }
@@ -281,7 +458,7 @@
         }
       }
     },
-    "/api/messages/room/{roomId}": {
+    "/messages/room/{roomId}": {
       "get": {
         "summary": "Get messages for a specific room",
         "tags": ["Messages"],
@@ -297,7 +474,8 @@
             "required": true,
             "schema": {
               "type": "string"
-            }
+            },
+            "description": "Unique identifier of the chat room"
           }
         ],
         "responses": {
@@ -310,7 +488,7 @@
         }
       }
     },
-    "/api/messages/private": {
+    "/messages/private": {
       "get": {
         "summary": "Get private messages for current user",
         "tags": ["Messages"],
@@ -329,7 +507,7 @@
         }
       }
     },
-    "/api/messages/unread": {
+    "/messages/unread": {
       "get": {
         "summary": "Get unread message count",
         "tags": ["Messages"],
@@ -348,7 +526,7 @@
         }
       }
     },
-    "/api/messages/{messageId}/read": {
+    "/messages/{messageId}/read": {
       "patch": {
         "summary": "Mark a message as read",
         "tags": ["Messages"],
