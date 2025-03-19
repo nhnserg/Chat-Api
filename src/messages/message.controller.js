@@ -1,5 +1,5 @@
 import { trycatch } from '../helpers/trycatch.js';
-import { MessageService } from '../services/messageService.js';
+import { MessageService } from './message.service.js';
 
 export class MessageController {
   constructor() {
@@ -17,13 +17,11 @@ export class MessageController {
     const messages = await this.messageService.getPrivateMessages(
       req.user.name
     );
-
     res.json(messages);
   });
 
   getUnreadCount = trycatch(async (req, res) => {
     const count = await this.messageService.getUnreadCount(req.user.name);
-
     res.json({ unreadCount: count });
   });
 
@@ -32,7 +30,6 @@ export class MessageController {
       req.params.messageId,
       req.user.name
     );
-
     res.json(message);
   });
 }

@@ -4,7 +4,7 @@ const messageSchema = new mongoose.Schema({
   roomId: {
     type: mongoose.Schema.Types.ObjectId,
     ref: 'ChatRoom',
-    required: false, // Made optional for private messages
+    required: false,
   },
   name: {
     type: String,

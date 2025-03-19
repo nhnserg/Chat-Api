@@ -1,0 +1,21 @@
+import jwt from 'jsonwebtoken';
+import { User } from '../user/user.model.js';
+import dotenvConfig from '../dotenvConfig.js';
+
+const { KEY_ACCESS } = dotenvConfig;
+
+export const authenticate = async (token) => {
+  try {
+    // Проверка и декодирование JWT
+    const decoded = jwt.verify(token, KEY_ACCESS);
+
+    // Получаем пользователя по ID
+    const user = await User.findById(decoded.userId);
+    if (!user) return null;
+
+    return user;  // Возвращаем пользователя, если он найден
+  } catch (err) {
+    console.error('❌ Ошибка аутентификации:', err);
+    return null;
+  }
+};

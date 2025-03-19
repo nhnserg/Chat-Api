@@ -20,7 +20,7 @@ export class AuthController {
       password,
     });
 
-    res.status(201).json({ user });
+    res.status(201).json({ user, token: user.accessToken });
   });
 
   login = trycatch(async (req, res) => {
@@ -103,7 +103,7 @@ export class AuthController {
 
       if (!user) {
         user = await User.create({
-          username: userData.data.name,
+          name: userData.data.name,
           email: userData.data.email,
           password: 'someRandomPassword',
         });

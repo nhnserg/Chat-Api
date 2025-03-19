@@ -1,0 +1,86 @@
+import { WebSocketServer } from 'ws';
+import { authenticate } from '../middleware/authenticate.js'; // Импортируем функцию аутентификации
+import { WebSocketService } from '../websocket/webSocket.service.js';
+
+export class WebSocketManager {
+  constructor(server) {
+    this.wss = new WebSocketServer({ server });
+    this.wsService = new WebSocketService();
+    this.setupWebSocket();
+  }
+
+  setupWebSocket() {
+    this.wss.on('connection', async (ws, req) => {
+      console.log('✅ Новый клиент подключился');
+
+      // Получаем JWT токен из query параметра (или заголовка)
+      const token = req.url.split('?token=')[1]; // Пример получения токена из URL query
+
+      if (!token) {
+        ws.send(
+          JSON.stringify({ type: 'error', error: 'Authentication required' })
+        );
+        ws.close();
+        return;
+      }
+
+      const user = await authenticate(token); // Проверяем токен с помощью функции authenticate
+
+      if (!user) {
+        ws.send(JSON.stringify({ type: 'error', error: 'Invalid token' }));
+        ws.close();
+        return;
+      }
+
+      console.log(`✅ Пользователь ${user.username} подключен`);
+
+      // Аутентифицированный клиент может продолжить работать с WebSocket
+      ws.on('message', async data => {
+        try {
+          const message = JSON.parse(data);
+
+          switch (message.type) {
+            case 'join':
+              this.handleJoin(ws, message, user);
+              break;
+            case 'message':
+              await this.handleMessage(ws, message, user);
+              break;
+            case 'privateMessage':
+              await this.handlePrivateMessage(ws, message, user);
+              break;
+            case 'typing':
+              this.handleTyping(ws, message, user);
+              break;
+            default:
+              console.warn('⚠ Неизвестный тип сообщения:', message.type);
+          }
+        } catch (error) {
+          console.error('❌ Ошибка обработки сообщения:', error);
+          ws.send(
+            JSON.stringify({ type: 'error', error: 'Invalid message format' })
+          );
+        }
+      });
+
+      ws.on('close', () => {
+        const client = this.wsService.getClientInfo(ws);
+        if (!client) return;
+
+        console.log(
+          `❌ Клиент ${client.username} покинул чат ${client.roomId}`
+        );
+
+        this.broadcast(client.roomId, {
+          type: 'userLeft',
+          username: client.username,
+          timestamp: new Date(),
+        });
+
+        this.wsService.removeClient(ws);
+      });
+    });
+  }
+
+  // Прочие методы, такие как handleJoin, handleMessage, handlePrivateMessage и т.д.
+}
