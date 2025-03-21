@@ -11,70 +11,73 @@ export class WebSocketManager {
 
   setupWebSocket() {
     this.wss.on('connection', async (ws, req) => {
-      const token = new URL(
-        req.url,
-        `http://${req.headers.host}`
-      ).searchParams.get('token');
-      if (!token) {
-        ws.send(
-          JSON.stringify({ type: 'error', error: 'Authentication required' })
-        );
-        ws.close();
-        return;
-      }
+      try {
+        const token = req.headers['sec-websocket-protocol'];
+        if (!token) {
+          ws.send(
+            JSON.stringify({ type: 'error', error: 'Authentication required' })
+          );
+          ws.close();
+          return;
+        }
 
-      // Authenticate the user using the token
-      const user = await authenticate(token);
-      if (!user) {
+        const user = await authenticate(token);
+        console.log(`✅ Пользователь ${user.username} подключен`);
+
+        ws.send(JSON.stringify({ type: 'success', message: 'Connected' }));
+
+        ws.on('message', async data => {
+          try {
+            const message = JSON.parse(data);
+
+            switch (message.type) {
+              case 'join':
+                this.handleJoin(ws, message, user);
+                break;
+              case 'message':
+                await this.handleMessage(ws, message, user);
+                break;
+              case 'privateMessage':
+                await this.handlePrivateMessage(ws, message, user);
+                break;
+              case 'typing':
+                this.handleTyping(ws, message, user);
+                break;
+              default:
+                console.warn('⚠ Неизвестный тип сообщения:', message.type);
+            }
+          } catch (error) {
+            console.error('❌ Ошибка обработки сообщения:', error);
+            ws.send(
+              JSON.stringify({
+                type: 'error',
+                error: 'Invalid message format',
+              })
+            );
+          }
+        });
+
+        ws.on('close', () => {
+          const client = this.wsService.getClientInfo(ws);
+          if (!client) return;
+
+          console.log(
+            `❌ Клиент ${client.username} покинул чат ${client.roomId}`
+          );
+
+          this.broadcast(client.roomId, {
+            type: 'userLeft',
+            username: client.username,
+            timestamp: new Date(),
+          });
+
+          this.wsService.removeClient(ws);
+        });
+      } catch (error) {
+        console.error('❌ Ошибка аутентификации:', error);
         ws.send(JSON.stringify({ type: 'error', error: 'Invalid token' }));
         ws.close();
-        return;
       }
-
-      console.log(`✅ User ${user.username} connected`);
-
-      ws.on('message', async data => {
-        try {
-          const message = JSON.parse(data);
-
-          switch (message.type) {
-            case 'join':
-              this.handleJoin(ws, message, user);
-              break;
-            case 'message':
-              await this.handleMessage(ws, message, user);
-              break;
-            case 'privateMessage':
-              await this.handlePrivateMessage(ws, message, user);
-              break;
-            case 'typing':
-              this.handleTyping(ws, message, user);
-              break;
-            default:
-              console.warn('⚠ Неизвестный тип сообщения:', message.type);
-          }
-        } catch (error) {
-          console.error('❌ Ошибка обработки сообщения:', error);
-          ws.send(
-            JSON.stringify({ type: 'error', error: 'Invalid message format' })
-          );
-        }
-      });
-
-      ws.on('close', () => {
-        const client = this.wsService.getClientInfo(ws);
-        if (!client) return;
-
-        console.log(
-          `❌ Клиент ${client.username} покинул чат ${client.roomId}`
-        );
-        this.broadcast(client.roomId, {
-          type: 'userLeft',
-          username: client.username,
-          timestamp: new Date(),
-        });
-        this.wsService.removeClient(ws);
-      });
     });
   }
 

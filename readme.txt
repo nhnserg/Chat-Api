@@ -7,6 +7,7 @@ wscat -c ws://localhost:3000
   "type": "join",
   "roomId": "room_id",  # Идентификатор комнаты
   "token": "TOKEN"      # Ваш JWT токен
+  "name":"testUser"
 }
 
 # Отправка сообщения в комнату

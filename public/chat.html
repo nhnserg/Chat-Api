@@ -87,18 +87,21 @@
     </div>
 
     <script>
+      const token = localStorage.getItem('chatToken');
       const username = localStorage.getItem('chatUsername');
-      if (!username) {
-        window.location.href = '/';
+
+      if (!token) {
+        window.location.href = '/'; // Перенаправляем на логин, если токена нет
       }
 
       const chatBox = document.getElementById('chat-box');
-      const socket = new WebSocket('ws://localhost:3000');
+      const socket = new WebSocket(`ws://localhost:3000/chat?token=${token}`);
 
-      socket.onopen = () => {
-        console.log('Connected to chat server');
+      socket.onopen = () => console.log('Connected to chat server');
+      socket.onerror = error => {
+        console.error('WebSocket error:', error);
+        alert('WebSocket connection failed!');
       };
-
       socket.onmessage = event => {
         const data = JSON.parse(event.data);
         displayMessage(data.username, data.message);

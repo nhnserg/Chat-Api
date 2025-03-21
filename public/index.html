@@ -3,480 +3,94 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>Enhanced Chat</title>
+    <title>Enhanced Chat - Login</title>
+    <link
+      rel="stylesheet"
+      href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css"
+    />
     <style>
       body {
         font-family: Arial, sans-serif;
-        max-width: 1200px;
-        margin: 20px auto;
-        padding: 0 20px;
-        display: flex;
-        gap: 20px;
-      }
-      #app {
-        display: none;
-        width: 100%;
-        flex-direction: row;
-        gap: 20px;
-      }
-      #sidebar {
-        width: 250px;
-      }
-      #main-chat {
-        flex: 1;
-      }
-      #chat {
-        display: none;
-      }
-      #messages {
-        height: 500px;
-        border: 1px solid #ccc;
-        margin: 20px 0;
-        padding: 20px;
-        overflow-y: auto;
-        background: #f9f9f9;
-        border-radius: 5px;
-      }
-      .message {
-        margin: 10px 0;
-        padding: 10px;
-        background: #fff;
-        border-radius: 5px;
-        box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
-      }
-      .message.private {
-        background: #fff3cd;
-      }
-      .message.reply {
-        margin-left: 20px;
-        border-left: 3px solid #007bff;
-      }
-      .replied-message {
-        padding: 5px;
-        margin: 5px 0;
-        background: #f0f0f0;
-        border-radius: 3px;
-        font-size: 0.9em;
-      }
-      .system {
-        color: #666;
-        font-style: italic;
-      }
-      .timestamp {
-        color: #999;
-        font-size: 0.8em;
-        margin-left: 10px;
-      }
-      .controls {
-        display: flex;
-        gap: 10px;
-        margin: 20px 0;
-      }
-      input[type='text'] {
-        flex: 1;
-        padding: 10px;
-        border: 1px solid #ccc;
-        border-radius: 5px;
-      }
-      button {
-        padding: 10px 20px;
-        background: #007bff;
+        background: linear-gradient(135deg, #667eea, #764ba2);
         color: white;
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        height: 100vh;
+        margin: 0;
+      }
+      .container {
+        background: rgba(255, 255, 255, 0.1);
+        padding: 20px;
+        border-radius: 10px;
+        box-shadow: 0 4px 10px rgba(0, 0, 0, 0.2);
+        width: 400px;
+        text-align: center;
+      }
+      input,
+      button {
+        width: 100%;
+        padding: 10px;
+        margin: 10px 0;
         border: none;
         border-radius: 5px;
+      }
+      input {
+        background: rgba(255, 255, 255, 0.8);
+        color: #333;
+      }
+      button {
+        background: #4caf50;
+        color: white;
         cursor: pointer;
       }
       button:hover {
-        background: #0056b3;
-      }
-      #typing {
-        color: #666;
-        font-style: italic;
-        height: 20px;
-      }
-      .header {
-        display: flex;
-        justify-content: space-between;
-        align-items: center;
-      }
-      .logout-btn {
-        background: #dc3545;
-      }
-      .logout-btn:hover {
-        background: #c82333;
-      }
-      .room-list {
-        margin: 20px 0;
-      }
-      .room-item {
-        padding: 10px;
-        margin: 5px 0;
-        background: #f8f9fa;
-        border-radius: 5px;
-        cursor: pointer;
-      }
-      .room-item:hover {
-        background: #e9ecef;
-      }
-      .room-item.active {
-        background: #007bff;
-        color: white;
-      }
-      .message-actions {
-        margin-top: 5px;
-        display: flex;
-        gap: 10px;
-      }
-      .action-btn {
-        font-size: 0.8em;
-        padding: 5px 10px;
-        background: #e9ecef;
-        color: #333;
-      }
-      .unread-count {
-        background: #dc3545;
-        color: white;
-        padding: 2px 6px;
-        border-radius: 10px;
-        font-size: 0.8em;
-        margin-left: 5px;
+        background: #45a049;
       }
     </style>
   </head>
   <body>
-    <div id="login">
-      <h2>Enter Chat</h2>
-      <div class="controls">
-        <input type="text" id="username" placeholder="Enter your username" />
-        <button onclick="join()">Join Chat</button>
-      </div>
-    </div>
-
-    <div id="app">
-      <div id="sidebar">
-        <h3>Chat Rooms</h3>
-        <button onclick="showCreateRoomDialog()">Create Room</button>
-        <div id="room-list" class="room-list"></div>
-      </div>
-
-      <div id="main-chat">
-        <div id="chat">
-          <div class="header">
-            <h2>Chat Room: <span id="current-room">General</span></h2>
-            <button class="logout-btn" onclick="logout()">Leave Chat</button>
-          </div>
-          <div id="messages"></div>
-          <div id="typing"></div>
-          <div class="controls">
-            <input
-              type="text"
-              id="messageInput"
-              placeholder="Type a message..."
-            />
-            <button onclick="sendMessage()">Send</button>
-          </div>
-        </div>
-      </div>
+    <div class="container">
+      <h2>Welcome to Chat</h2>
+      <input type="email" id="email" placeholder="Enter email" />
+      <input type="password" id="password" placeholder="Enter password" />
+      <button onclick="login()">Login</button>
     </div>
 
     <script>
-      let ws;
-      let username;
-      let typingTimeout;
-      let currentRoom = 'general';
-      let replyingTo = null;
-      let unreadMessages = {};
-
-      const rooms = [
-        { id: 'general', name: 'General Chat' },
-        { id: 'tech', name: 'Technology' },
-        { id: 'random', name: 'Random' },
-      ];
-
-      // Check for saved username and reconnect
-      window.onload = () => {
-        const savedUsername = localStorage.getItem('chatUsername');
-        if (savedUsername) {
-          document.getElementById('username').value = savedUsername;
-        }
-        updateRoomList();
-      };
-
-      function updateRoomList() {
-        const roomList = document.getElementById('room-list');
-        roomList.innerHTML = rooms
-          .map(
-            room => `
-                <div class="room-item ${
-                  room.id === currentRoom ? 'active' : ''
-                }"
-                     onclick="switchRoom('${room.id}')">
-                    ${room.name}
-                    ${
-                      unreadMessages[room.id]
-                        ? `<span class="unread-count">${
-                            unreadMessages[room.id]
-                          }</span>`
-                        : ''
-                    }
-                </div>
-            `
-          )
-          .join('');
-      }
-
-      function showCreateRoomDialog() {
-        const roomName = prompt('Enter room name:');
-        if (roomName) {
-          const roomId = roomName.toLowerCase().replace(/\s+/g, '-');
-          rooms.push({ id: roomId, name: roomName });
-          updateRoomList();
-          switchRoom(roomId);
-        }
-      }
-
-      function switchRoom(roomId) {
-        if (ws && ws.readyState === WebSocket.OPEN) {
-          ws.send(
-            JSON.stringify({
-              type: 'leave',
-              room: currentRoom,
-            })
-          );
-
-          ws.send(
-            JSON.stringify({
-              type: 'join',
-              username,
-              room: roomId,
-            })
-          );
+      async function login() {
+        const email = document.getElementById('email').value.trim();
+        const password = document.getElementById('password').value.trim();
+        if (!email || !password) {
+          alert('Please enter email and password.');
+          return;
         }
 
-        currentRoom = roomId;
-        document.getElementById('current-room').textContent = rooms.find(
-          r => r.id === roomId
-        ).name;
-        document.getElementById('messages').innerHTML = '';
-        delete unreadMessages[roomId];
-        updateRoomList();
-      }
+        try {
+          const response = await fetch('http://localhost:3000/auth/login', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ email, password }),
+          });
 
-      function join() {
-        username = document.getElementById('username').value.trim();
-        if (!username) return;
-
-        localStorage.setItem('chatUsername', username);
-        document.getElementById('login').style.display = 'none';
-        document.getElementById('app').style.display = 'flex';
-        document.getElementById('chat').style.display = 'block';
-
-        connectWebSocket();
-      }
-
-      function logout() {
-        if (ws) {
-          ws.close();
-        }
-        localStorage.removeItem('chatUsername');
-        username = null;
-        document.getElementById('login').style.display = 'block';
-        document.getElementById('app').style.display = 'none';
-        document.getElementById('username').value = '';
-        document.getElementById('messages').innerHTML = '';
-        document.getElementById('typing').textContent = '';
-        document.getElementById('messageInput').value = '';
-        unreadMessages = {};
-        updateRoomList();
-      }
-
-      function connectWebSocket() {
-        ws = new WebSocket(`ws://${window.location.host}`);
-
-        ws.onopen = () => {
-          console.log('Connected to chat server');
-          ws.send(
-            JSON.stringify({
-              type: 'join',
-              username,
-              room: currentRoom,
-              token: localStorage.getItem('token'),
-            })
-          );
-        };
-
-        ws.onmessage = event => {
-          console.log('Message received:', event.data);
-          const message = JSON.parse(event.data);
-
-          switch (message.type) {
-            case 'message':
-            case 'privateMessage':
-              if (message.room === currentRoom) {
-                appendMessage(message);
-              } else {
-                unreadMessages[message.room] =
-                  (unreadMessages[message.room] || 0) + 1;
-                updateRoomList();
-              }
-              break;
-            case 'system':
-              appendSystemMessage(message.content, message.timestamp);
-              break;
-            case 'typing':
-              if (message.room === currentRoom) {
-                handleTypingIndicator(message);
-              }
-              break;
+          if (!response.ok) {
+            const errorData = await response.json();
+            throw new Error(errorData.message || 'Unknown error');
           }
-        };
 
-        ws.onclose = () => {
-          if (username) {
-            appendSystemMessage('Disconnected from chat server');
-            setTimeout(connectWebSocket, 3000);
+          const data = await response.json();
+          if (data.token) {
+            localStorage.setItem('chatToken', data.token);
+            localStorage.setItem('chatUsername', data.username); // Сохраняем имя пользователя
+            window.location.href = '/chat.html'; // Переход в чат
+          } else {
+            alert('Login failed! Please check your credentials.');
           }
-        };
-      }
-
-      function sendMessage() {
-        const input = document.getElementById('messageInput');
-        const content = input.value.trim();
-
-        if (!content || !ws) return;
-
-        const message = {
-          type: 'message',
-          content,
-          room: currentRoom,
-        };
-
-        if (replyingTo) {
-          message.replyTo = replyingTo;
-          replyingTo = null;
-        }
-
-        ws.send(JSON.stringify(message));
-        input.value = '';
-      }
-
-      function sendPrivateMessage(toUser) {
-        const content = prompt(`Send private message to ${toUser}:`);
-        if (!content || !ws) return;
-
-        ws.send(
-          JSON.stringify({
-            type: 'privateMessage',
-            content,
-            recipient: toUser,
-            room: currentRoom,
-          })
-        );
-      }
-
-      function replyToMessage(messageId, username, content) {
-        replyingTo = { messageId, username, content };
-        const input = document.getElementById('messageInput');
-        input.placeholder = `Replying to ${username}`;
-        input.focus();
-      }
-
-      function appendMessage(message) {
-        console.log('Appending message:', message); // Добавьте это для отладки
-        const messages = document.getElementById('messages');
-        const messageDiv = document.createElement('div');
-        messageDiv.className = `message ${
-          message.type === 'privateMessage' ? 'private' : ''
-        } ${message.replyTo ? 'reply' : ''}`;
-
-        let messageContent = '';
-
-        if (message.replyTo) {
-          messageContent += `
-      <div class="replied-message">
-        <strong>${message.replyTo.username}:</strong> ${message.replyTo.content}
-      </div>
-    `;
-        }
-
-        const time = new Date(message.timestamp).toLocaleString();
-        messageContent += `
-    <strong>${message.username}:</strong> ${message.content}
-    <span class="timestamp">${time}</span>
-    <div class="message-actions">
-      <button class="action-btn" onclick="replyToMessage('${message.id}', '${
-          message.username
-        }', '${message.content}')">Reply</button>
-      ${
-        message.username !== username
-          ? `<button class="action-btn" onclick="sendPrivateMessage('${message.username}')">Private Message</button>`
-          : ''
-      }
-    </div>
-  `;
-
-        messageDiv.innerHTML = messageContent;
-        messages.appendChild(messageDiv);
-        messages.scrollTop = messages.scrollHeight;
-      }
-
-      function appendSystemMessage(content, timestamp) {
-        const messages = document.getElementById('messages');
-        const messageDiv = document.createElement('div');
-        messageDiv.className = 'message system';
-        const time = timestamp
-          ? new Date(timestamp).toLocaleString()
-          : new Date().toLocaleString();
-        messageDiv.innerHTML = `${content}<span class="timestamp">${time}</span>`;
-        messages.appendChild(messageDiv);
-        messages.scrollTop = messages.scrollHeight;
-      }
-
-      function handleTypingIndicator(message) {
-        const typingDiv = document.getElementById('typing');
-        if (message.isTyping) {
-          typingDiv.textContent = `${message.username} is typing...`;
-        } else {
-          typingDiv.textContent = '';
+        } catch (error) {
+          alert(`Login failed: ${error.message}`);
+          console.error('Login error:', error);
         }
       }
-
-      // Handle typing indicator
-      document.getElementById('messageInput').addEventListener('input', e => {
-        if (!ws) return;
-
-        clearTimeout(typingTimeout);
-
-        ws.send(
-          JSON.stringify({
-            type: 'typing',
-            isTyping: true,
-            room: currentRoom,
-          })
-        );
-
-        typingTimeout = setTimeout(() => {
-          ws.send(
-            JSON.stringify({
-              type: 'typing',
-              isTyping: false,
-              room: currentRoom,
-            })
-          );
-        }, 1000);
-      });
-
-      // Handle enter key in message input
-      document
-        .getElementById('messageInput')
-        .addEventListener('keypress', e => {
-          if (e.key === 'Enter') sendMessage();
-        });
-
-      // Handle enter key in username input
-      document.getElementById('username').addEventListener('keypress', e => {
-        if (e.key === 'Enter') join();
-      });
     </script>
   </body>
 </html>

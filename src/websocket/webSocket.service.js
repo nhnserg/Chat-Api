@@ -18,8 +18,8 @@ export class WebSocketService {
 
       const newMessage = new Message({
         roomId,
-        name: user.name, // ✅ Теперь всегда есть
-        sender: user.name, // ✅ Теперь всегда есть
+        name: user.name,
+        sender: user.name,
         content: message.content,
         isPrivate: message.isPrivate || false,
         recipient: message.recipient || null,
@@ -47,7 +47,7 @@ export class WebSocketService {
     const delivered = this.sendPrivateMessage(message.recipient, {
       type: 'privateMessage',
       messageId: privateMessage._id,
-      sender: user.name, // ✅ Теперь всегда есть
+      sender: user.name,
       content: message.content,
       timestamp: new Date(),
     });
