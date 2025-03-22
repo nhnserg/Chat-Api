@@ -40,7 +40,7 @@ export class AuthController {
 
     await this.authService.logoutUser(refreshToken);
 
-    res.status(200).json({ message: 'Logout successful' });
+    res.status(204).json({ message: 'Logout successful' });
   });
 
   getProfile = trycatch(async (req, res) => {

@@ -7,5 +7,6 @@ const roomController = new RoomController();
 
 roomRouter.get('/', authenticate, roomController.getAllRooms);
 roomRouter.post('/', authenticate, roomController.createRoom);
+roomRouter.delete('/:roomId', authenticate, roomController.deleteRoom);
 
 export default roomRouter;

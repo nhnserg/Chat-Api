@@ -15,4 +15,9 @@ export class RoomController {
     const room = await this.roomService.createRoom(req.body);
     res.status(201).json(room);
   });
+
+  deleteRoom = trycatch(async (req, res) => {
+    const room = await this.roomService.deleteRoom(req.params.roomId);
+    res.json(room);
+  });
 }

@@ -1,5 +1,5 @@
 import bcrypt from 'bcryptjs';
-import { User } from './user.model';
+import { User } from './user.model.js';
 
 export class userService {
   async updateUser(userId, formData, FormFile) {

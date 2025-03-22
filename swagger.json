@@ -1,5 +1,5 @@
 {
-  "openapi": "3.0.0",
+  "openapi": "3.0.1",
   "info": {
     "title": "Chat Application API",
     "version": "1.0.0",
@@ -401,7 +401,7 @@
         }
       }
     },
-    "/rooms": {
+    "/room": {
       "get": {
         "summary": "Get all chat rooms",
         "tags": ["Rooms"],
@@ -454,6 +454,37 @@
           },
           "401": {
             "description": "Not authenticated"
+          }
+        }
+      },
+      "delete": {
+        "summary": "Delete a chat room",
+        "tags": ["Rooms"],
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "in": "query",
+            "name": "roomId",
+            "required": true,
+            "schema": {
+              "type": "string"
+            },
+            "description": "Unique identifier of the chat room to delete"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Chat room deleted successfully"
+          },
+          "401": {
+            "description": "Not authenticated"
+          },
+          "404": {
+            "description": "Room not found"
           }
         }
       }

@@ -7,6 +7,7 @@ import { swaggerDocument } from './helpers/swaggerSetup.js';
 import authRoutes from './auth/auth.routes.js';
 import roomRoutes from './room/rooms.routes.js';
 import messageRoutes from './messages/messages.routes.js';
+import userRouter from './user/user.routes.js';
 
 export const app = express();
 
@@ -18,9 +19,10 @@ app.use(cookieParser());
 
 app.use('/api-docs', swaggerUi.serve, swaggerUi.setup(swaggerDocument));
 
-app.use('/rooms', roomRoutes);
+app.use('/room', roomRoutes);
 app.use('/messages', messageRoutes);
 app.use('/auth', authRoutes);
+app.use('/user', userRouter);
 
 app.use((_, res) => {
   res.status(404).json({ message: 'Route not found' });

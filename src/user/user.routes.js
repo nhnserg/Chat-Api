@@ -1,26 +1,26 @@
 import express from 'express';
-import { UserController } from './user.controller';
+import { UserController } from './user.controller.js';
 import { validateBody } from '../middleware/validateBody.js';
-import { updateThemeSchema } from './user.schema.js';
+import { updateThemeSchema, updateUserSchema } from './user.schema.js';
 import { authenticate } from '../middleware/authenticate.js';
 
-const router = express.Router();
+const userRouter = express.Router();
 const userController = new UserController();
 
-router.get('/current', authenticate, userController.getCurrentUser);
+userRouter.get('/current', authenticate, userController.getCurrentUser);
 
-router.put(
+userRouter.put(
   '/update',
   authenticate,
   validateBody(updateUserSchema),
   userController.updateUser
 );
 
-router.put(
+userRouter.put(
   '/theme',
   authenticate,
   validateBody(updateThemeSchema),
   userController.updateTheme
 );
 
-export default router;
+export default userRouter;

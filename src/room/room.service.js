@@ -8,4 +8,8 @@ export class RoomService {
   async createRoom({ name, topic }) {
     return new ChatRoom({ name, topic }).save();
   }
+
+  async deleteRoom(roomId) {
+    return ChatRoom.findByIdAndDelete(roomId);
+  }
 }
