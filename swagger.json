@@ -9,7 +9,7 @@
   "produces": ["application/json", "multipart/form-data"],
   "servers": [
     {
-      "url": "http://localhost:3000",
+      "url": "https://chat-api-uf32.onrender.com",
       "description": "Development server"
     }
   ],
