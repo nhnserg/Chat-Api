@@ -18,8 +18,8 @@ export class WebSocketService {
 
       const newMessage = new Message({
         roomId,
-        name: user.name,
-        sender: user.name,
+        name: user?.name || 'Аноним',
+        sender: user?.name || 'Аноним',
         content: message.content,
         isPrivate: message.isPrivate || false,
         recipient: message.recipient || null,
@@ -73,5 +73,16 @@ export class WebSocketService {
 
   getClientInfo(ws) {
     return this.clients.get(ws);
+  }
+
+  sendPrivateMessage(recipientName, message) {
+    for (const [client, data] of this.clients.entries()) {
+      if (data.name === recipientName) {
+        // ✅ Исправлено: теперь ищем по name, а не username
+        client.send(JSON.stringify(message));
+        return true;
+      }
+    }
+    return false;
   }
 }

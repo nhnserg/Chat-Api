@@ -1,6 +1,8 @@
 {
   "name": "chat-backend",
   "version": "1.0.0",
+  "description": "chat-backend",
+  "main": "src/server.js",
   "private": true,
   "type": "module",
   "scripts": {
