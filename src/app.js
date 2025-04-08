@@ -8,6 +8,7 @@ import authRoutes from './auth/auth.routes.js';
 import roomRoutes from './room/rooms.routes.js';
 import messageRoutes from './messages/messages.routes.js';
 import userRouter from './user/user.routes.js';
+import { errorHandler, notFoundHandler } from './helpers/errorHandlers.js';
 
 export const app = express();
 
@@ -24,11 +25,5 @@ app.use('/messages', messageRoutes);
 app.use('/auth', authRoutes);
 app.use('/user', userRouter);
 
-app.use((_, res) => {
-  res.status(404).json({ message: 'Route not found' });
-});
-
-app.use((err, _, res, __) => {
-  const { status = 500, message = 'Server error' } = err;
-  res.status(status).json({ message });
-});
+app.use(notFoundHandler);
+app.use(errorHandler);
