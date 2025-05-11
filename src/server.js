@@ -4,7 +4,7 @@ import { app } from './app.js';
 import { createServer } from 'http';
 import { WebSocketManager } from './websocket/WebSocketManager.js';
 
-const { MONGO_CONNECT, PORT = 3000 } = config;
+const { MONGO_CONNECT, PORT = 3005 } = config;
 
 if (!MONGO_CONNECT) {
   console.error('\x1b[31m❌ MONGO_CONNECT is missing in .env\x1b[0m');

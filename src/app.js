@@ -13,7 +13,14 @@ import { errorHandler, notFoundHandler } from './helpers/errorHandlers.js';
 export const app = express();
 
 app.use(morgan('tiny'));
-app.use(cors());
+app.use(
+  cors({
+    origin: 'http://localhost:3000',
+    methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
+    allowedHeaders: ['Content-Type', 'Authorization'],
+    credentials: true,
+  })
+);
 app.use(express.json());
 app.use(express.static('public'));
 app.use(cookieParser());

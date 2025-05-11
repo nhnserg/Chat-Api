@@ -3,23 +3,14 @@ import bcrypt from 'bcryptjs';
 
 const userSchema = new Schema(
   {
-    name: {
-      type: String,
-      required: [true, 'Set name for user'],
-    },
-    password: {
-      type: String,
-      required: [true, 'Set password for user'],
-    },
-    email: {
-      type: String,
-      required: [true, 'Email is required'],
-      unique: true,
-    },
-    theme: {
-      type: String,
-      enum: ['light', 'violet', 'dark'],
-      default: 'dark',
+    name: { type: String, required: true },
+    password: { type: String },
+    email: { type: String, required: true, unique: true },
+    theme: { type: String, enum: ['light', 'dark'], default: 'dark' },
+    providers: {
+      type: [String],
+      enum: ['local', 'google'],
+      default: ['local'],
     },
     avatar_url: { type: String, default: 'default' },
   },
@@ -27,7 +18,9 @@ const userSchema = new Schema(
 );
 
 userSchema.pre('save', async function () {
-  this.password = await bcrypt.hash(this.password, 10);
+  if (this.isModified('password') && this.password) {
+    this.password = await bcrypt.hash(this.password, 10);
+  }
 });
 
 userSchema.methods.comparePassword = async function (password) {

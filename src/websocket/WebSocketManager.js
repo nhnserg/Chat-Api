@@ -21,6 +21,12 @@ export class WebSocketManager {
               this.handleJoin(ws, message);
               break;
             case 'message':
+              // if (!message.username || !message.content || !message.roomId) {
+              //   console.error(
+              //     '⛔ Ошибка: сообщение не содержит необходимых данных'
+              //   );
+              //   return;
+              // }
               await this.handleMessage(ws, message);
               break;
             case 'privateMessage':
