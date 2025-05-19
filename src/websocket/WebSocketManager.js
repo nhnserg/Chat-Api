@@ -12,8 +12,6 @@ export class WebSocketManager {
 
   setupWebSocket() {
     this.wss.on('connection', ws => {
-      console.log('✅ Новый пользователь подключился');
-
       let user = null;
 
       ws.isAlive = true;
