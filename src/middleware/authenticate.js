@@ -1,59 +1,29 @@
-import { User } from '../user/user.model.js';
-import tokenService from '../token/token.sevice.js';
-import { HttpError } from '../helpers/index.js';
+import { HttpError } from '../helpers/HttpError.js';
+import { verifyAccessToken } from '../websocket/auth.utils.js';
 
 export const authenticate = async (req, _, next) => {
-  const [bearer, accessToken] = req.headers.authorization?.split(' ') || [];
+  let token = null;
 
-  if (bearer !== 'Bearer') {
-    next(HttpError(401, 'No Bearer token provided'));
-    return;
+  if (req.cookies?.accessToken) {
+    token = req.cookies.accessToken;
   }
 
-  try {
-    const accessUser = tokenService.validateAccessToken(accessToken);
-
-    if (!accessUser) {
-      next(HttpError(401, 'Invalid or expired token'));
-      return;
+  if (!token && req.headers.authorization) {
+    const [bearer, value] = req.headers.authorization.split(' ');
+    if (bearer === 'Bearer') {
+      token = value;
     }
-
-    const user = await User.findById(accessUser.userId);
-
-    if (!user) {
-      return next(HttpError(401, 'User not found in DB.'));
-    }
-
-    user.tokenAccess = accessToken;
-    req.user = user;
-  } catch (error) {
-    console.log(error);
-    next(HttpError(401, 'Not authorized'));
   }
 
-  return next();
+  if (!token) {
+    return next(HttpError(401, 'Access token is missing'));
+  }
+
+  const user = await verifyAccessToken(token);
+  if (!user) {
+    return next(HttpError(401, 'Invalid or expired token'));
+  }
+
+  req.user = user;
+  next();
 };
-
-// export const authenticate = async token => {
-//   if (!token) {
-//     throw HttpError(401, 'Token is required');
-//   }
-
-//   try {
-//     const accessUser = tokenService.validateAccessToken(token);
-//     if (!accessUser || Date.now() > accessUser.exp * 1000) {
-//       throw HttpError(401, 'Token expired or invalid');
-//     }
-
-//     const user = await User.findById(accessUser.userId);
-//     if (!user) {
-//       throw HttpError(401, 'User not found');
-//     }
-
-//     user.tokenAccess = token;
-//     return user;
-//   } catch (error) {
-//     console.log(error);
-//     throw HttpError(401, 'Not authorized');
-//   }
-// };

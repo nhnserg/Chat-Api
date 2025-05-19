@@ -14,6 +14,15 @@ export class UserController {
     });
   });
 
+  changePassword = trycatch(async (req, res) => {
+    const { _id: userId } = req.user;
+    const { currentPassword, newPassword } = req.body;
+
+    await this.userService.changePassword(userId, currentPassword, newPassword);
+
+    res.status(204).send(); // или { message: 'Password updated successfully' }
+  });
+
   updateUser = trycatch(async (req, res) => {
     const { _id: userId } = req.user;
     const { body, file } = req;
@@ -28,5 +37,14 @@ export class UserController {
     const user = await this.userService.updateTheme(userId, theme);
 
     res.json({ user });
+  });
+
+  deleteUser = trycatch(async (req, res) => {
+    const { _id: userId } = req.user;
+    const { password } = req.body;
+
+    await this.userService.deleteUser(userId, password);
+
+    res.status(204).send();
   });
 }

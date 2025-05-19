@@ -1,45 +1,68 @@
 import { WebSocketServer } from 'ws';
-import { WebSocketService } from '../websocket/webSocket.service.js';
+import { WebSocketService } from './webSocket.service.js';
+import { verifyAccessToken } from './auth.utils.js';
 
 export class WebSocketManager {
   constructor(server) {
     this.wss = new WebSocketServer({ server });
     this.wsService = new WebSocketService();
     this.setupWebSocket();
+    this.startHeartbeat();
   }
 
   setupWebSocket() {
     this.wss.on('connection', ws => {
-      console.log(`✅ Новый пользователь подключился`);
+      console.log('✅ Новый пользователь подключился');
+
+      let user = null;
+
+      ws.isAlive = true;
+      ws.on('pong', () => {
+        ws.isAlive = true;
+      });
 
       ws.on('message', async data => {
         try {
           const message = JSON.parse(data);
 
+          if (message.type === 'auth') {
+            user = await verifyAccessToken(message.token);
+            if (!user) {
+              ws.send(JSON.stringify({ type: 'error', error: 'Unauthorized' }));
+              ws.close();
+              return;
+            }
+
+            this.wsService.addClient(ws, user.name);
+            ws.send(JSON.stringify({ type: 'authSuccess', name: user.name }));
+            return;
+          }
+
+          if (!user) {
+            ws.send(
+              JSON.stringify({ type: 'error', error: 'Not authenticated' })
+            );
+            return;
+          }
+
           switch (message.type) {
             case 'join':
-              this.handleJoin(ws, message);
+              this.handleJoin(ws, user, message);
               break;
             case 'message':
-              // if (!message.username || !message.content || !message.roomId) {
-              //   console.error(
-              //     '⛔ Ошибка: сообщение не содержит необходимых данных'
-              //   );
-              //   return;
-              // }
-              await this.handleMessage(ws, message);
+              await this.handleMessage(ws, user, message);
               break;
             case 'privateMessage':
-              await this.handlePrivateMessage(ws, message);
+              await this.handlePrivateMessage(ws, user, message);
               break;
             case 'typing':
-              this.handleTyping(ws, message);
+              this.handleTyping(ws, user, message);
               break;
             default:
-              console.warn('⚠ Неизвестный тип сообщения:', message.type);
+              ws.send(JSON.stringify({ type: 'error', error: 'Unknown type' }));
           }
-        } catch (error) {
-          console.error('❌ Ошибка обработки сообщения:', error);
+        } catch (err) {
+          console.error('❌ Ошибка разбора сообщения:', err);
           ws.send(
             JSON.stringify({ type: 'error', error: 'Invalid message format' })
           );
@@ -47,118 +70,93 @@ export class WebSocketManager {
       });
 
       ws.on('close', () => {
-        const client = this.wsService.getClientInfo(ws);
-        if (!client) return;
-
-        console.log(
-          `❌ Клиент ${client.username} покинул чат ${client.roomId}`
-        );
-        this.broadcast(client.roomId, {
-          type: 'userLeft',
-          username: client.username,
-          timestamp: new Date(),
-        });
         this.wsService.removeClient(ws);
       });
     });
   }
+  startHeartbeat() {
+    this.heartbeatInterval = setInterval(() => {
+      this.wss.clients.forEach(ws => {
+        if (ws.isAlive === false) {
+          console.log('❌ Клиент не отвечает. Закрываю соединение');
+          return ws.terminate();
+        }
 
-  handleJoin(ws, message) {
-    const roomId = message.roomId || message.room;
-    if (!roomId) {
-      console.error('⛔ Ошибка: комната не указана при входе:', message);
-      return;
-    }
+        ws.isAlive = false;
+        ws.ping();
+      });
+    }, 30000);
+  }
 
-    this.wsService.addClient(ws, message.username, roomId);
-    console.log(`👤 ${message.username} присоединился к ${roomId}`);
-
-    this.broadcast(
-      message.roomId,
+  handleJoin(ws, user, message) {
+    const { roomId } = message;
+    this.wsService.joinRoom(ws, roomId);
+    this.wsService.broadcast(
+      roomId,
       {
         type: 'userJoined',
-        username: message.username,
+        username: user.name,
         timestamp: new Date(),
       },
       ws
     );
+    this.wsService.sendUnreadMessages(ws, user._id);
   }
 
-  async handleMessage(ws, message) {
-    const newMessage = await this.wsService.handleMessage(null, message);
-
+  async handleMessage(ws, user, message) {
+    const newMessage = await this.wsService.handleMessage(user, message);
     if (!newMessage) {
-      console.error('❌ Ошибка: сообщение не сохранено', message);
+      ws.send(
+        JSON.stringify({ type: 'error', error: 'Failed to save message' })
+      );
       return;
     }
 
-    this.broadcast(
+    this.wsService.broadcast(
       message.roomId,
       {
         type: 'message',
         messageId: newMessage._id,
-        username: message.username,
-        content: message.content,
-        timestamp: new Date(),
+        username: user.name,
+        content: newMessage.content,
+        timestamp: newMessage.timestamp,
       },
       ws
     );
   }
 
-  async handlePrivateMessage(ws, message) {
-    const privateMessage = await this.wsService.handlePrivateMessage(message);
-
-    if (!privateMessage) {
-      console.error('❌ Ошибка: личное сообщение не отправлено', message);
+  async handlePrivateMessage(ws, user, message) {
+    const result = await this.wsService.handlePrivateMessage(user, message);
+    if (!result) {
+      ws.send(
+        JSON.stringify({
+          type: 'error',
+          error: 'Failed to send private message',
+        })
+      );
       return;
     }
 
-    const delivered = this.sendPrivateMessage(message.recipient, {
-      type: 'privateMessage',
-      messageId: privateMessage._id,
-      sender: message.username,
-      content: message.content,
+    ws.send({
+      type: 'privateMessageStatus',
+      messageId: result.newMessage._id,
+      delivered: result.delivered,
       timestamp: new Date(),
     });
-
-    ws.send(
-      JSON.stringify({
-        type: 'privateMessageStatus',
-        messageId: privateMessage._id,
-        delivered: delivered,
-        timestamp: new Date(),
-      })
-    );
   }
 
-  handleTyping(ws, message) {
-    this.broadcast(
+  handleTyping(ws, user, message) {
+    this.wsService.broadcast(
       message.roomId,
       {
         type: 'typing',
-        username: message.username,
+        username: user.name,
         isTyping: message.isTyping,
       },
       ws
     );
   }
-
-  broadcast(roomId, message, sender) {
-    this.wss.clients.forEach(client => {
-      const clientInfo = this.wsService.getClientInfo(client);
-      if (clientInfo && clientInfo.roomId === roomId && client !== sender) {
-        client.send(JSON.stringify(message));
-      }
-    });
-  }
-
-  sendPrivateMessage(username, message) {
-    for (const [client, data] of this.wsService.clients) {
-      if (data.username === username) {
-        client.send(JSON.stringify(message));
-        return true;
-      }
-    }
-    return false;
+  stopHeartbeat() {
+    clearInterval(this.heartbeatInterval);
   }
 }

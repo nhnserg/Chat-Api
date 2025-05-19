@@ -9,26 +9,17 @@
   "produces": ["application/json", "multipart/form-data"],
   "servers": [
     {
-      "url": "https://chat-api-uf32.onrender.com",
+      "url": "http://localhost:3005",
       "description": "Development server"
     }
   ],
-  "components": {
-    "securitySchemes": {
-      "bearerAuth": {
-        "type": "http",
-        "scheme": "bearer",
-        "bearerFormat": "JWT"
-      }
-    }
-  },
   "tags": [
     {
       "name": "Auth",
       "description": "Authentication endpoints"
     },
     {
-      "name": "User",
+      "name": "Users",
       "description": "User management"
     },
     {
@@ -51,25 +42,16 @@
             "application/json": {
               "schema": {
                 "type": "object",
-                "required": ["name", "email", "password"],
+                "required": ["email", "password"],
                 "properties": {
-                  "name": {
-                    "type": "string",
-                    "minLength": 3
-                  },
                   "email": {
                     "type": "string",
-                    "format": "email"
+                    "example": "user@example.com"
                   },
                   "password": {
                     "type": "string",
-                    "minLength": 6
+                    "example": "secret123"
                   }
-                },
-                "example": {
-                  "name": "John Doe",
-                  "email": "john.doe@example.com",
-                  "password": "securepassword123"
                 }
               }
             }
@@ -77,51 +59,92 @@
         },
         "responses": {
           "201": {
-            "description": "User registered successfully",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "type": "object",
-                  "properties": {
-                    "user": {
-                      "type": "object",
-                      "properties": {
-                        "id": {
-                          "type": "string",
-                          "description": "User's unique identifier"
-                        },
-                        "name": {
-                          "type": "string",
-                          "description": "User's name"
-                        },
-                        "email": {
-                          "type": "string",
-                          "description": "User's email address"
-                        }
-                      }
-                    },
-                    "accessToken": {
-                      "type": "string",
-                      "description": "JWT access token for the user"
-                    },
-                    "refreshToken": {
-                      "type": "string",
-                      "description": "JWT refresh token to obtain a new access token"
-                    }
+            "description": "User registered"
+          },
+          "409": {
+            "description": "Email already in use"
+          }
+        }
+      }
+    },
+    "/auth/verify/send": {
+      "post": {
+        "summary": "Send verification code to email",
+        "tags": ["Auth"],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": ["email"],
+                "properties": {
+                  "email": {
+                    "type": "string",
+                    "example": "user@example.com"
                   }
                 }
               }
             }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Verification code sent"
           },
           "400": {
-            "description": "Invalid input"
+            "description": "Email is required"
+          },
+          "409": {
+            "description": "Email is already verified and in use"
+          },
+          "429": {
+            "description": "Too many requests"
+          }
+        }
+      }
+    },
+    "/auth/verify": {
+      "post": {
+        "summary": "Verify email with code",
+        "tags": ["Auth"],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": ["email", "code"],
+                "properties": {
+                  "email": {
+                    "type": "string",
+                    "example": "user@example.com"
+                  },
+                  "code": {
+                    "type": "string",
+                    "example": "123456"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Email verified successfully"
+          },
+          "400": {
+            "description": "Code expired or invalid"
+          },
+          "404": {
+            "description": "Verification code not found"
           }
         }
       }
     },
     "/auth/login": {
       "post": {
-        "summary": "Login user",
+        "summary": "Log in user",
         "tags": ["Auth"],
         "requestBody": {
           "required": true,
@@ -133,10 +156,11 @@
                 "properties": {
                   "email": {
                     "type": "string",
-                    "format": "email"
+                    "example": "user@example.com"
                   },
                   "password": {
-                    "type": "string"
+                    "type": "string",
+                    "example": "secret123"
                   }
                 }
               }
@@ -145,44 +169,38 @@
         },
         "responses": {
           "200": {
-            "description": "Login successful",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "type": "object",
-                  "properties": {
-                    "user": {
-                      "type": "object",
-                      "properties": {
-                        "id": {
-                          "type": "string",
-                          "description": "User's unique identifier"
-                        },
-                        "name": {
-                          "type": "string",
-                          "description": "User's name"
-                        },
-                        "email": {
-                          "type": "string",
-                          "description": "User's email address"
-                        }
-                      }
-                    },
-                    "accessToken": {
-                      "type": "string",
-                      "description": "JWT access token for the user"
-                    },
-                    "refreshToken": {
-                      "type": "string",
-                      "description": "JWT refresh token to obtain a new access token"
-                    }
-                  }
-                }
-              }
-            }
+            "description": "Successful login"
           },
           "401": {
-            "description": "Invalid credentials"
+            "description": "Email or password invalid"
+          },
+          "403": {
+            "description": "Email not verified"
+          }
+        }
+      }
+    },
+    "/auth/refresh": {
+      "post": {
+        "summary": "Refresh tokens",
+        "tags": ["Auth"],
+        "security": [
+          {
+            "cookieAuth": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Tokens refreshed"
+          },
+          "400": {
+            "description": "Refresh token is required"
+          },
+          "403": {
+            "description": "Invalid refresh token"
+          },
+          "404": {
+            "description": "User not found"
           }
         }
       }
@@ -193,41 +211,23 @@
         "tags": ["Auth"],
         "security": [
           {
-            "bearerAuth": []
+            "cookieAuth": []
           }
         ],
-        "requestBody": {
-          "required": true,
-          "content": {
-            "application/json": {
-              "schema": {
-                "type": "object",
-                "properties": {
-                  "refreshToken": {
-                    "type": "string"
-                  }
-                }
-              }
-            }
-          }
-        },
         "responses": {
-          "200": {
+          "204": {
             "description": "Logout successful"
           },
           "400": {
             "description": "Refresh token is required"
-          },
-          "401": {
-            "description": "Invalid token"
           }
         }
       }
     },
-    "/user/current": {
+    "/users/current": {
       "get": {
-        "summary": "Get current user data",
-        "tags": ["User"],
+        "summary": "Get current user",
+        "tags": ["Users"],
         "security": [
           {
             "bearerAuth": []
@@ -235,39 +235,27 @@
         ],
         "responses": {
           "200": {
-            "description": "Current user data",
+            "description": "Returns current authenticated user",
             "content": {
               "application/json": {
                 "schema": {
                   "type": "object",
                   "properties": {
-                    "_id": {
-                      "type": "string"
-                    },
-                    "name": {
-                      "type": "string"
-                    },
-                    "email": {
-                      "type": "string"
-                    },
-                    "tokenAccess": {
-                      "type": "string"
+                    "user": {
+                      "$ref": "#/components/schemas/User"
                     }
                   }
                 }
               }
             }
-          },
-          "401": {
-            "description": "Unauthorized"
           }
         }
       }
     },
-    "/user/update": {
+    "/users/update": {
       "put": {
-        "summary": "Update user data",
-        "tags": ["User"],
+        "summary": "Update user profile",
+        "tags": ["Users"],
         "security": [
           {
             "bearerAuth": []
@@ -276,71 +264,36 @@
         "requestBody": {
           "required": true,
           "content": {
-            "application/json": {
+            "multipart/form-data": {
               "schema": {
-                "type": "object",
-                "properties": {
-                  "name": {
-                    "type": "string"
-                  },
-                  "email": {
-                    "type": "string"
-                  },
-                  "password": {
-                    "type": "string",
-                    "minLength": 6
-                  },
-                  "avatar_url": {
-                    "type": "string"
-                  }
-                }
+                "$ref": "#/components/schemas/UpdateUserInput"
               }
             }
           }
         },
         "responses": {
           "200": {
-            "description": "User data updated successfully",
+            "description": "User updated",
             "content": {
               "application/json": {
                 "schema": {
                   "type": "object",
                   "properties": {
                     "user": {
-                      "type": "object",
-                      "properties": {
-                        "_id": {
-                          "type": "string"
-                        },
-                        "name": {
-                          "type": "string"
-                        },
-                        "email": {
-                          "type": "string"
-                        },
-                        "avatar_url": {
-                          "type": "string"
-                        }
-                      }
+                      "$ref": "#/components/schemas/User"
                     }
                   }
                 }
               }
             }
-          },
-          "400": {
-            "description": "Invalid input"
-          },
-          "401": {
-            "description": "Unauthorized"
           }
         }
       }
     },
-    "/user/theme": {
+    "/users/theme": {
       "put": {
         "summary": "Update user theme",
-        "tags": ["User"],
+        "tags": ["Users"],
         "security": [
           {
             "bearerAuth": []
@@ -352,10 +305,10 @@
             "application/json": {
               "schema": {
                 "type": "object",
+                "required": ["theme"],
                 "properties": {
                   "theme": {
-                    "type": "string",
-                    "enum": ["light", "dark", "violet"]
+                    "type": "string"
                   }
                 }
               }
@@ -364,44 +317,91 @@
         },
         "responses": {
           "200": {
-            "description": "User theme updated successfully",
+            "description": "Theme updated",
             "content": {
               "application/json": {
                 "schema": {
                   "type": "object",
                   "properties": {
                     "user": {
-                      "type": "object",
-                      "properties": {
-                        "_id": {
-                          "type": "string"
-                        },
-                        "name": {
-                          "type": "string"
-                        },
-                        "email": {
-                          "type": "string"
-                        },
-                        "theme": {
-                          "type": "string"
-                        }
-                      }
+                      "$ref": "#/components/schemas/User"
                     }
                   }
                 }
               }
             }
-          },
-          "400": {
-            "description": "Invalid input"
-          },
-          "401": {
-            "description": "Unauthorized"
           }
         }
       }
     },
-    "/room": {
+    "/users/password": {
+      "put": {
+        "summary": "Change password",
+        "tags": ["Users"],
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": ["currentPassword", "newPassword"],
+                "properties": {
+                  "currentPassword": {
+                    "type": "string"
+                  },
+                  "newPassword": {
+                    "type": "string"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "204": {
+            "description": "Password changed successfully"
+          }
+        }
+      }
+    },
+    "/users/delete": {
+      "delete": {
+        "summary": "Delete user",
+        "tags": ["Users"],
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": ["password"],
+                "properties": {
+                  "password": {
+                    "type": "string"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "204": {
+            "description": "User deleted successfully"
+          }
+        }
+      }
+    },
+    "/rooms": {
       "get": {
         "summary": "Get all chat rooms",
         "tags": ["Rooms"],
@@ -412,10 +412,17 @@
         ],
         "responses": {
           "200": {
-            "description": "List of chat rooms"
-          },
-          "401": {
-            "description": "Not authenticated"
+            "description": "List of all chat rooms",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/ChatRoom"
+                  }
+                }
+              }
+            }
           }
         }
       },
@@ -432,31 +439,26 @@
           "content": {
             "application/json": {
               "schema": {
-                "type": "object",
-                "required": ["name", "topic"],
-                "properties": {
-                  "name": {
-                    "type": "string",
-                    "description": "Name of the new room"
-                  },
-                  "topic": {
-                    "type": "string",
-                    "description": "Topic of the new room"
-                  }
-                }
+                "$ref": "#/components/schemas/CreateRoomInput"
               }
             }
           }
         },
         "responses": {
           "201": {
-            "description": "Chat room created"
-          },
-          "401": {
-            "description": "Not authenticated"
+            "description": "Room created successfully",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ChatRoom"
+                }
+              }
+            }
           }
         }
-      },
+      }
+    },
+    "/rooms/{roomId}": {
       "delete": {
         "summary": "Delete a chat room",
         "tags": ["Rooms"],
@@ -467,21 +469,25 @@
         ],
         "parameters": [
           {
-            "in": "query",
+            "in": "path",
             "name": "roomId",
-            "required": true,
             "schema": {
               "type": "string"
             },
-            "description": "Unique identifier of the chat room to delete"
+            "required": true,
+            "description": "ID of the room to delete"
           }
         ],
         "responses": {
           "200": {
-            "description": "Chat room deleted successfully"
-          },
-          "401": {
-            "description": "Not authenticated"
+            "description": "Room deleted",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ChatRoom"
+                }
+              }
+            }
           },
           "404": {
             "description": "Room not found"
@@ -491,7 +497,7 @@
     },
     "/messages/room/{roomId}": {
       "get": {
-        "summary": "Get messages for a specific room",
+        "summary": "Get latest messages from a room",
         "tags": ["Messages"],
         "security": [
           {
@@ -506,22 +512,29 @@
             "schema": {
               "type": "string"
             },
-            "description": "Unique identifier of the chat room"
+            "description": "ID of the chat room"
           }
         ],
         "responses": {
           "200": {
-            "description": "List of messages"
-          },
-          "401": {
-            "description": "Not authenticated"
+            "description": "List of messages",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/Message"
+                  }
+                }
+              }
+            }
           }
         }
       }
     },
     "/messages/private": {
       "get": {
-        "summary": "Get private messages for current user",
+        "summary": "Get private messages for the authenticated user",
         "tags": ["Messages"],
         "security": [
           {
@@ -530,17 +543,24 @@
         ],
         "responses": {
           "200": {
-            "description": "List of private messages"
-          },
-          "401": {
-            "description": "Not authenticated"
+            "description": "List of private messages",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/Message"
+                  }
+                }
+              }
+            }
           }
         }
       }
     },
     "/messages/unread": {
       "get": {
-        "summary": "Get unread message count",
+        "summary": "Get count of unread private messages",
         "tags": ["Messages"],
         "security": [
           {
@@ -549,17 +569,27 @@
         ],
         "responses": {
           "200": {
-            "description": "Number of unread messages"
-          },
-          "401": {
-            "description": "Not authenticated"
+            "description": "Count of unread messages",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "unreadCount": {
+                      "type": "integer",
+                      "example": 3
+                    }
+                  }
+                }
+              }
+            }
           }
         }
       }
     },
     "/messages/{messageId}/read": {
       "patch": {
-        "summary": "Mark a message as read",
+        "summary": "Mark a private message as read",
         "tags": ["Messages"],
         "security": [
           {
@@ -573,15 +603,137 @@
             "required": true,
             "schema": {
               "type": "string"
-            }
+            },
+            "description": "ID of the message to mark as read"
           }
         ],
         "responses": {
           "200": {
-            "description": "Message marked as read"
+            "description": "Updated message",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Message"
+                }
+              }
+            }
           },
-          "401": {
-            "description": "Not authenticated"
+          "404": {
+            "description": "Message not found"
+          }
+        }
+      }
+    }
+  },
+  "components": {
+    "securitySchemes": {
+      "cookieAuth": {
+        "type": "apiKey",
+        "in": "cookie",
+        "name": "refreshToken"
+      },
+      "bearerAuth": {
+        "type": "http",
+        "scheme": "bearer",
+        "bearerFormat": "JWT"
+      }
+    },
+    "schemas": {
+      "User": {
+        "type": "object",
+        "properties": {
+          "_id": {
+            "type": "string"
+          },
+          "id": {
+            "type": "string"
+          },
+          "email": {
+            "type": "string"
+          },
+          "name": {
+            "type": "string"
+          },
+          "theme": {
+            "type": "string"
+          },
+          "avatar_url": {
+            "type": "string"
+          },
+          "tokenAccess": {
+            "type": "string"
+          }
+        }
+      },
+      "UpdateUserInput": {
+        "type": "object",
+        "properties": {
+          "name": {
+            "type": "string"
+          },
+          "password": {
+            "type": "string"
+          },
+          "avatar": {
+            "type": "string",
+            "format": "binary"
+          }
+        }
+      },
+      "ChatRoom": {
+        "type": "object",
+        "properties": {
+          "_id": {
+            "type": "string"
+          },
+          "name": {
+            "type": "string"
+          },
+          "topic": {
+            "type": "string"
+          },
+          "createdAt": {
+            "type": "string",
+            "format": "date-time"
+          }
+        }
+      },
+      "CreateRoomInput": {
+        "type": "object",
+        "required": ["name", "topic"],
+        "properties": {
+          "name": {
+            "type": "string"
+          },
+          "topic": {
+            "type": "string"
+          }
+        }
+      },
+      "Message": {
+        "type": "object",
+        "properties": {
+          "_id": {
+            "type": "string"
+          },
+          "senderId": {
+            "type": "string"
+          },
+          "recipientId": {
+            "type": "string"
+          },
+          "roomId": {
+            "type": "string"
+          },
+          "content": {
+            "type": "string"
+          },
+          "createdAt": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "isRead": {
+            "type": "boolean"
           }
         }
       }

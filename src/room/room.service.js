@@ -1,4 +1,4 @@
-import { ChatRoom } from './ChatRoom.js';
+import { ChatRoom } from './room.model.js';
 
 export class RoomService {
   async getAllRooms() {

@@ -13,8 +13,9 @@ const userSchema = new Schema(
       default: ['local'],
     },
     avatar_url: { type: String, default: 'default' },
+    isVerified: { type: Boolean, default: false },
   },
-  { versionKey: false, timestamps: true }
+  { versionKey: false, timestamps: false }
 );
 
 userSchema.pre('save', async function () {
@@ -26,5 +27,15 @@ userSchema.pre('save', async function () {
 userSchema.methods.comparePassword = async function (password) {
   return bcrypt.compare(password, this.password);
 };
+
+userSchema.set('toJSON', {
+  transform: (_, ret) => {
+    ret.id = ret._id.toString();
+    delete ret._id;
+    delete ret.password;
+    delete ret.providers;
+    return ret;
+  },
+});
 
 export const User = model('User', userSchema);
