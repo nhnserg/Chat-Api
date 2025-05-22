@@ -1,8 +1,6 @@
-# 💬 Сервер WebSocket-чата | WebSocket Chat Server
+# 💬 Real-Time WebSocket Chat Server
 
 ## 📌 Описание | Description
-
-Это сервер WebSocket-чата на Node.js с поддержкой JWT-аутентификации, комнат, личных сообщений и MongoDB для хранения истории.
 
 This is a WebSocket chat server built with Node.js, featuring JWT authentication, chat rooms, private messaging, and MongoDB message storage.
 
@@ -19,10 +17,7 @@ This is a WebSocket chat server built with Node.js, featuring JWT authentication
 - 💓 Пинг/Понг и проверка активности | Ping/pong and client heartbeat
 
 ---
-
-## 🛠️ Установка | Installation
-
-```bash
-git clone https://github.com/your-username/your-repo-name.git
-cd your-repo-name
-npm install
+- **Node.js** + **ws**
+- **MongoDB** + **mongoose**
+- **JWT** for validation
+- **sanitize-html** для защиты от XSS
