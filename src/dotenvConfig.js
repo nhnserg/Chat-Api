@@ -5,12 +5,8 @@ export default {
   MONGO_CONNECT: process.env.MONGO_CONNECT,
   PORT: process.env.PORT,
 
-  BASE_URL: process.env.BASE_URL,
-
   KEY_ACCESS: process.env.KEY_ACCESS,
   KEY_REFRESH: process.env.KEY_REFRESH,
-
-  SUPPORT_EMAIL: process.env.SUPPORT_EMAIL,
 
   CLOUDINARY_ClOUD_NAME: process.env.CLOUDINARY_ClOUD_NAME,
   CLOUDINARY_API_KEY: process.env.CLOUDINARY_API_KEY,
