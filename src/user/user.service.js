@@ -1,6 +1,8 @@
 import bcrypt from 'bcryptjs';
 import { User } from './user.model.js';
 import { HttpError } from '../helpers/HttpError.js';
+import { ImageAvatarService } from '../image/image-avatar.service.js';
+import { CLOUDINARY_FOLDER } from '../constants/CloudinaryFolderConstants.js';
 
 export class userService {
   async changePassword(userId, currentPassword, newPassword) {
@@ -28,21 +30,33 @@ export class userService {
         theme: 1,
       });
     }
-    await imageAvatarService.processAvatarImage({ width: 68, height: 68 });
-    const avatarURL = await imageAvatarService.saveImageToCloud(
-      CLOUDINARY_FOLDER.AVATARS
-    );
 
-    return User.findByIdAndUpdate(
-      userId,
-      { ...formData, avatar_url: avatarURL },
-      { new: true }
-    ).select({
-      name: 1,
-      email: 1,
-      avatar_url: 1,
-      theme: 1,
-    });
+    try {
+      await ImageAvatarService.processAvatarImage(FormFile.path, {
+        width: 68,
+        height: 68,
+      });
+
+      ImageAvatarService._temporaryFilePath = FormFile.path;
+
+      const avatarURL = await ImageAvatarService.saveImageToCloud(
+        CLOUDINARY_FOLDER.AVATARS
+      );
+
+      return User.findByIdAndUpdate(
+        userId,
+        { ...formData, avatar_url: avatarURL },
+        { new: true }
+      ).select({
+        name: 1,
+        email: 1,
+        avatar_url: 1,
+        theme: 1,
+      });
+    } catch (error) {
+      console.error('Ошибка при обработке аватара:', error);
+      throw new Error('Не удалось обновить аватар. Попробуйте позже.');
+    }
   }
 
   async updateTheme(userId, theme) {

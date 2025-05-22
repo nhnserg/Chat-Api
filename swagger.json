@@ -224,7 +224,7 @@
         }
       }
     },
-    "/users/current": {
+    "/user/current": {
       "get": {
         "summary": "Get current user",
         "tags": ["Users"],
@@ -252,8 +252,8 @@
         }
       }
     },
-    "/users/update": {
-      "put": {
+    "/user/update": {
+      "patch": {
         "summary": "Update user profile",
         "tags": ["Users"],
         "security": [
@@ -290,8 +290,8 @@
         }
       }
     },
-    "/users/theme": {
-      "put": {
+    "/user/theme": {
+      "patch": {
         "summary": "Update user theme",
         "tags": ["Users"],
         "security": [
@@ -334,7 +334,7 @@
         }
       }
     },
-    "/users/password": {
+    "/user/password": {
       "put": {
         "summary": "Change password",
         "tags": ["Users"],
@@ -369,7 +369,7 @@
         }
       }
     },
-    "/users/delete": {
+    "/user/delete": {
       "delete": {
         "summary": "Delete user",
         "tags": ["Users"],

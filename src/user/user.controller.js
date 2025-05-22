@@ -20,15 +20,23 @@ export class UserController {
 
     await this.userService.changePassword(userId, currentPassword, newPassword);
 
-    res.status(204).send(); // или { message: 'Password updated successfully' }
+    res.status(204).send(); // or { message: 'Password updated successfully' }
   });
 
   updateUser = trycatch(async (req, res) => {
     const { _id: userId } = req.user;
     const { body, file } = req;
+
     const user = await this.userService.updateUser(userId, body, file);
 
-    res.json({ user });
+    const response = { user };
+
+    // Если аватар был обновлён — добавим сообщение
+    if (file) {
+      response.message = 'Аватар обновлён';
+    }
+
+    res.json(response);
   });
 
   updateTheme = trycatch(async (req, res) => {
